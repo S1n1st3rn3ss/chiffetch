@@ -1,13 +1,12 @@
 use std::collections::HashMap;
 use std::fs::{File, read_to_string};
 use std::io;
-use glob::glob;
 
 fn main() {
     let os = get_distro();
     let cpu = get_cpu();
     let temp = get_temp();
-    println!("{}", os.version);
+    println!("{}\n{}\n{}\n", os.name, os.version, temp);
 }
 
 struct OsInfo {
@@ -23,8 +22,15 @@ fn get_distro() -> OsInfo {
         distro_info.insert(split.0.trim().to_owned(), split.1.trim().to_owned());
     }
     let os_info = OsInfo {
-        name: distro_info["NAME"].clone().replace("\"", ""),
-        version: distro_info["VERSION"].clone().replace("\\", "").replace("\"", ""),
+        name: distro_info["NAME"]
+            .replace("\"", "")
+            .trim()
+            .to_owned(),
+        version: distro_info["VERSION"]
+            .replace("\\", "")
+            .replace("\"", "")
+            .trim()
+            .to_owned(),
     };
     os_info
 }
@@ -45,5 +51,6 @@ fn get_temp() -> String {
     let mut float_temp = temp.parse::<f32>()
         .expect("/temp is parsed correctly");
     float_temp /= 1000.0;
-    float_temp.to_string()
+    let float_temp = float_temp.to_string() + "°C";
+    float_temp
 }
