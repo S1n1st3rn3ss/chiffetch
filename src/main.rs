@@ -1,25 +1,37 @@
+use std::collections::HashMap;
 use std::fs::{File, read_to_string};
 use std::io;
+use glob::glob;
 
 fn main() {
-    // Distribution name, ID and links
     let os = get_distro();
     let cpu = get_cpu();
     let temp = get_temp();
-    // let s = binding.split("\n").next().unwrap();
-    println!("{}", temp);
+    println!("{}", os.version);
 }
 
-struct OS {
+struct OsInfo {
     name: String,
     version: String,
 }
-fn get_distro() -> String {
-    let binding = read_to_string("/etc/os-release");
-    match binding {
-        Ok(string) => string,
-        Err(error) => read_to_string("/usr/lib/os-release").unwrap()
+fn get_distro() -> OsInfo {
+    let binding = read_to_string("/etc/os-release").expect("/etc/os-release was found");
+    let binding: Vec<&str> = binding.lines().collect();
+    let mut distro_info: HashMap<String, String> = Default::default();
+    for i in binding {
+        let split = i.split_once("=").unwrap();
+        distro_info.insert(split.0.trim().to_owned(), split.1.trim().to_owned());
     }
+    let os_info = OsInfo {
+        name: distro_info["NAME"].clone().replace("\"", ""),
+        version: distro_info["VERSION"].clone().replace("\\", "").replace("\"", ""),
+    };
+    os_info
+}
+fn get_kernel() -> String {
+    let kernel = read_to_string("/proc/sys/kernel/osrelease")
+        .expect("/proc/sys/kernel/osrelease was found");
+    kernel
 }
 fn get_cpu() -> String {
     read_to_string("/proc/cpuinfo")
