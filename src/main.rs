@@ -6,12 +6,12 @@ fn main() {
     let os = get_distro();
     let cpu = get_cpu();
     let temp = get_temp();
-    println!("{}\n{}\n{}\n", os.name, os.version, temp);
+    println!("{}\n{}", os.name, temp);
 }
 
 struct OsInfo {
     name: String,
-    version: String,
+    // version: String,
 }
 fn get_distro() -> OsInfo {
     let binding = read_to_string("/etc/os-release").expect("/etc/os-release was found");
@@ -21,16 +21,17 @@ fn get_distro() -> OsInfo {
         let split = i.split_once("=").unwrap();
         distro_info.insert(split.0.trim().to_owned(), split.1.trim().to_owned());
     }
+    // Version field doesn't exist for Arch-based distributions
     let os_info = OsInfo {
         name: distro_info["NAME"]
             .replace("\"", "")
             .trim()
             .to_owned(),
-        version: distro_info["VERSION"]
-            .replace("\\", "")
-            .replace("\"", "")
-            .trim()
-            .to_owned(),
+        // version: distro_info["VERSION"]
+        //     .replace("\\", "")
+        //     .replace("\"", "")
+        //     .trim()
+        //     .to_owned(),
     };
     os_info
 }
@@ -44,6 +45,7 @@ fn get_cpu() -> String {
         .expect("cpuinfo is found")
 }
 fn get_temp() -> String {
+    // thermal data might be different between distributions and/or kernel versions?
     let temp = read_to_string("/sys/class/thermal/thermal_zone0/temp")
         .expect("/thermal/thermal_zone*/temp exists")
         .trim_end()
