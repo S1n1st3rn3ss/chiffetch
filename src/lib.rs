@@ -65,6 +65,8 @@ fn get_thermal_zone() -> Result<String, Box<dyn std::error::Error>> {
     Ok(format!("{:.2}°C", temp_human))
 }
 // checks hwmon temperatures
+// TODO: make proper iteration over possible names
+// TODO: add checks for various temp* files
 fn get_temp_monitor() -> Result<String, String> {
     let possible_path = vec!["cpu_thermal",
                              "coretemp",
