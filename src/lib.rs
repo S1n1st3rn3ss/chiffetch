@@ -60,19 +60,40 @@ fn get_thermal_zone() -> Result<String, Box<dyn std::error::Error>> {
     let temp_value: f32 = read_to_string(thermal_path)?
         .trim()
         .to_owned()
-        .parse()?
-        / 1000.0;
-    Ok(format!("{:.2}°C", temp_value))
+        .parse()?;
+    let temp_human = temp_value / 1000.0;
+    Ok(format!("{:.2}°C", temp_human))
 }
+// checks hwmon temperatures
 fn get_temp_monitor() -> Result<String, String> {
-    let mon_paths: Vec<_> = glob("/sys/class/hwmon/*/name")
+    let possible_path = vec!["cpu_thermal",
+                             "coretemp",
+                             "fam15h_power",
+                             "k10temp"];
+    let mon_paths: Vec<_> = glob("/sys/class/hwmon/*")
         .expect("paths found")
         .collect();
-    let thing: Vec<_> = glob("/sys/class/hwmon/*").unwrap().collect();
-    for paths in thing {
-        let mut new_path = paths.unwrap();
-        new_path.push("name");
-        println!("{}", read_to_string(new_path).unwrap().trim());
+    for paths in mon_paths {
+        let name_path = paths
+            .as_ref()
+            .unwrap()
+            .join("name");
+        let name_path = read_to_string(name_path)
+            .unwrap()
+            .trim()
+            .to_owned();
+        if name_path == possible_path[3] {
+            let temp_path = paths
+                .unwrap()
+                .join("temp1_input");
+            let temp_string: f32 = read_to_string(temp_path)
+                .unwrap()
+                .trim()
+                .parse::<f32>()?
+                .unwrap()
+                / 1000.0;
+            return Ok(format!("{:.2}°C", temp_string));
+        }
     }
-    Ok("balls".to_string())
+    Err("???".to_owned())
 }
