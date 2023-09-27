@@ -53,16 +53,16 @@ pub fn get_temp() -> String {
         Err(error) => get_temp_monitor().unwrap()
     }
 }
-fn get_thermal_zone() -> Result<String, String> {
-    let temp = read_to_string("/sys/class/thermal/thermal_zone0/temp");
-    let temp_value = match temp {
-        Ok(str) => str.trim().to_owned(),
-        Err(e) => return Err(e.to_string()),
-    };
-    match temp_value.parse::<f32>() {
-        Ok(float) => Ok((float / 1000.0).to_string()),
-        Err(e) => return Err(e.to_string()),
-    }
+// checks thermal_zone temps
+// has early returns on reading the path (doesn't exist on Arch?) and on string parse
+fn get_thermal_zone() -> Result<String, Box<dyn std::error::Error>> {
+    let thermal_path: &Path = Path::new("/sys/class/thermal/thermal_zone0/temp");
+    let temp_value: f32 = read_to_string(thermal_path)?
+        .trim()
+        .to_owned()
+        .parse()?
+        / 1000.0;
+    Ok(format!("{:.2}°C", temp_value))
 }
 fn get_temp_monitor() -> Result<String, String> {
     let mon_paths: Vec<_> = glob("/sys/class/hwmon/*/name")
