@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 
 pub struct OsInfo {
     pub name: String,
-    version: String,
+    pub version: String,
 }
 pub fn get_distro() -> OsInfo {
     let binding = read_to_string("/etc/lsb-release").expect("/etc/os-release was found");
@@ -19,7 +19,7 @@ pub fn get_distro() -> OsInfo {
         distro_info.insert(split.0.trim().to_owned(), split.1.trim().to_owned());
     }
     let os_info = OsInfo {
-        name: distro_info["DISTRIB_ID"]
+        name: distro_info["DISTRIB_DESCRIPTION"]
             .replace("\"", "")
             .trim()
             .to_owned(),
@@ -31,7 +31,7 @@ pub fn get_distro() -> OsInfo {
     };
     os_info
 }
-pub fn get_kernel() -> Result<String, Box(dyn Error)> {
+pub fn get_kernel() -> Result<String, Box<dyn Error>> {
     let kernel = read_to_string("/proc/sys/kernel/osrelease")?;
     Ok(kernel)
 }
@@ -123,4 +123,21 @@ pub fn get_shell() -> Result<String, VarError> {
     let shell = env::var("SHELL")?;
     // let shell_pathless = shell.strip
     Ok(shell)
+}
+pub struct Motherboard {
+    pub manufacturer: String,
+    pub model: String,
+}
+pub fn get_motherboard() -> Result<Motherboard, Box<dyn Error>> {
+    if Path::exists("/sys/devices/virtual/dmi/id/board_vendor".as_ref()) {
+        let manufacturer: String = read_to_string("/sys/devices/virtual/dmi/id/board_vendor")?.trim().to_owned();
+        let model: String = read_to_string("/sys/devices/virtual/dmi/id/board_name")?.trim().to_owned();
+        let motherboard = Motherboard {
+            manufacturer,
+            model
+        };
+        Ok(motherboard)
+    } else {
+        Err(Box::new(std::fmt::Error))
+    }
 }
