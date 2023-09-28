@@ -47,10 +47,6 @@ pub fn get_cpu() -> String {
     read_to_string("/proc/cpuinfo")
         .expect("cpuinfo is found")
 }
-// pub fn get_temp() -> String {
-//     // thermal data might be different between distributions and/or kernel versions?
-
-// }
 pub struct Uptime {
     pub days: i32,
     pub hours: i32,
@@ -71,10 +67,10 @@ pub fn get_uptime() -> Result<Uptime, Box<dyn Error>> {
         .round()
         as i32;
     let uptime = Uptime {
-        days: uptime_system / 60 / 60 / 24,
-        hours: uptime_system.to_owned() / 60 / 60 % 24,
-        minutes: uptime_system.to_owned() / 60 % 60,
-        seconds: uptime_system.to_owned() % 60
+        days: &uptime_system / 60 / 60 / 24,
+        hours: &uptime_system / 60 / 60 % 24,
+        minutes: &uptime_system / 60 % 60,
+        seconds: &uptime_system % 60
     };
     Ok(uptime)
 }
@@ -88,13 +84,9 @@ pub fn get_temp() -> String {
 // checks thermal_zone temps
 // has early returns on reading the path (doesn't exist on Arch?) and on string parse
 fn get_thermal_zone() -> Result<String, Box<dyn Error>> {
-    let thermal_path: &Path = Path::new("/sys/class/thermal/thermal_zone0/temp");
-    let temp_value: f32 = read_to_string(thermal_path)?
-        .trim()
-        .to_owned()
-        .parse()?;
-    let temp_human = temp_value / 1000.0;
-    Ok(format!("{:.1}°C", temp_human))
+    let thermal_path: PathBuf = Path::new("/sys/class/thermal/thermal_zone0/temp").to_path_buf();
+    let temp_value: f32 = parse_temperature(thermal_path)?;
+    Ok(format!("{:.1}°C", temp_value))
 }
 // checks hwmon temperatures
 // TODO: add checks for various temp* files
@@ -106,9 +98,8 @@ fn get_temp_monitor() -> Result<String, Box<dyn Error>> {
             .as_ref()
             .unwrap()
             .join("name");
-        let name_file: String = read_to_string(name_path)?
-            .trim()
-            .to_owned();
+        let name_file: String = read_to_string(name_path)?;
+        let name_file = name_file.trim();
         return match name_file.as_ref() {
             "cpu_thermal" |
             "coretemp" |
@@ -117,10 +108,7 @@ fn get_temp_monitor() -> Result<String, Box<dyn Error>> {
                 let temp_path = paths
                     .unwrap()
                     .join("temp1_input");
-                let temp_float: f32 = read_to_string(temp_path)?
-                    .trim()
-                    .parse::<f32>()?
-                    / 1000.0;
+                let temp_float: f32 = parse_temperature(temp_path)?;
                 Ok(format!("{:.1}°C", temp_float))
             }
             _ => continue,
@@ -128,11 +116,16 @@ fn get_temp_monitor() -> Result<String, Box<dyn Error>> {
     }
     Err(Box::new(std::fmt::Error))
 }
-
+fn parse_temperature(path: PathBuf) -> Result<f32, Box<dyn Error>> {
+    let temp: String = read_to_string(path)?;
+    let temp = temp.trim();
+    let temp: f32 = temp.parse::<f32>()? / 1000.0;
+    return Ok(temp)
+}
 pub fn get_shell() -> Result<String, VarError> {
-    let shell_path = "a/b/c";
-    Ok(shell_path.trim_end_matches("/").to_owned())
-    // let shell = env::var("SHELL")?;
+    // let shell_path = "a/b/c";
+    // Ok(shell_path.trim_end_matches("/").to_owned())
+    let shell = env::var("SHELL")?;
     // let shell_pathless = shell.strip
-    // Ok(shell_pathless.to_owned())
+    Ok(shell)
 }
