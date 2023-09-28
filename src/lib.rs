@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs::{read_dir, read_to_string};
+use std::io::ErrorKind;
 use glob::*;
 use std::path::Path;
 
@@ -67,7 +68,7 @@ fn get_thermal_zone() -> Result<String, Box<dyn std::error::Error>> {
 // checks hwmon temperatures
 // TODO: make proper iteration over possible names
 // TODO: add checks for various temp* files
-fn get_temp_monitor() -> Result<String, String> {
+fn get_temp_monitor() -> Result<String, Box<dyn Error>> {
     let possible_path = vec!["cpu_thermal",
                              "coretemp",
                              "fam15h_power",
@@ -92,10 +93,9 @@ fn get_temp_monitor() -> Result<String, String> {
                 .unwrap()
                 .trim()
                 .parse::<f32>()?
-                .unwrap()
                 / 1000.0;
             return Ok(format!("{:.2}°C", temp_string));
         }
     }
-    Err("???".to_owned())
+    Err(Box::new(std::fmt::Error))
 }
