@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::env;
+use std::env::VarError;
 use std::error::Error;
 use std::fs::{read_dir, read_to_string};
 use std::io::ErrorKind;
@@ -125,4 +127,12 @@ fn get_temp_monitor() -> Result<String, Box<dyn Error>> {
         }
     }
     Err(Box::new(std::fmt::Error))
+}
+
+pub fn get_shell() -> Result<String, VarError> {
+    let shell_path = "a/b/c";
+    Ok(shell_path.trim_end_matches("/").to_owned())
+    // let shell = env::var("SHELL")?;
+    // let shell_pathless = shell.strip
+    // Ok(shell_pathless.to_owned())
 }

@@ -5,6 +5,6 @@ fn main() {
     let cpu = get_cpu();
     let temp = get_temp();
     let uptime = get_uptime();
-    println!("{}h", uptime.unwrap().hours);
+    println!("{}", get_shell().unwrap());
 }
 
