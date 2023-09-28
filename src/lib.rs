@@ -128,6 +128,9 @@ pub struct Motherboard {
     pub manufacturer: String,
     pub model: String,
 }
+// gets motherboard manufacturer and model name
+// TODO: Add other types of mobo info storage
+// https://github.com/dylanaraps/neofetch/blob/ccd5d9f52609bbdcd5d8fa78c4fdb0f12954125f/neofetch#L1238
 pub fn get_motherboard() -> Result<Motherboard, Box<dyn Error>> {
     if Path::exists("/sys/devices/virtual/dmi/id/board_vendor".as_ref()) {
         let manufacturer: String = read_to_string("/sys/devices/virtual/dmi/id/board_vendor")?.trim().to_owned();
