@@ -1,35 +1,28 @@
 use std::collections::HashMap;
-use std::env;
+use std::{env, fs};
 use std::env::VarError;
 use std::error::Error;
-use std::fs::{read_to_string};
+use std::fs::{File, read_to_string};
 use glob::*;
 use std::path::{Path, PathBuf};
+use sysinfo;
+use sysinfo::{System, SystemExt};
 
-pub struct OsInfo {
-    pub name: String,
-    pub version: String,
+pub struct Info {
+    pub distro: String,
+    pub kernel_ver: String,
+    pub host_name: String,
+
 }
-pub fn get_distro() -> OsInfo {
-    let binding = read_to_string("/etc/lsb-release").expect("/etc/os-release was found");
-    let binding: Vec<&str> = binding.lines().collect();
-    let mut distro_info: HashMap<String, String> = Default::default();
-    for i in binding {
-        let split = i.split_once("=").unwrap();
-        distro_info.insert(split.0.trim().to_owned(), split.1.trim().to_owned());
-    }
-    let os_info = OsInfo {
-        name: distro_info["DISTRIB_DESCRIPTION"]
-            .replace("\"", "")
-            .trim()
-            .to_owned(),
-        version: distro_info["DISTRIB_RELEASE"]
-            .replace("\\", "")
-            .replace("\"", "")
-            .trim()
-            .to_owned(),
+pub fn get_data() -> Info {
+    let mut sys = System::new();
+    sys.refresh_all();
+    let info = Info {
+        distro: sys.name().unwrap(),
+        kernel_ver: sys.kernel_version().unwrap(),
+        host_name: sys.host_name().unwrap(),
     };
-    os_info
+    info
 }
 pub fn get_kernel() -> Result<String, Box<dyn Error>> {
     let kernel = read_to_string("/proc/sys/kernel/osrelease")?;
@@ -70,6 +63,22 @@ pub fn get_uptime() -> Result<Uptime, Box<dyn Error>> {
     Ok(uptime)
 }
 
+pub fn get_terminal() -> Result<String, Box<dyn Error>> {
+    let id = std::process::id();
+    let unix_id = std::os::unix::process::parent_id();
+    let path = format!("/proc/{}/status", id);
+    let path = Path::new(&path);
+    let file = read_to_string(path)?;
+    let string = file.trim_start_matches("Name:")
+        .trim()
+        .lines()
+        .next()
+        .unwrap()
+        .to_owned();
+
+    Ok(string)
+
+}
 pub fn get_temp() -> String {
     match get_thermal_zone() {
         Ok(str) => str,
