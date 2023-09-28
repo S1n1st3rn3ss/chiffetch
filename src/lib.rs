@@ -3,14 +3,15 @@ use std::error::Error;
 use std::fs::{read_dir, read_to_string};
 use std::io::ErrorKind;
 use glob::*;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::time::SystemTime;
 
 pub struct OsInfo {
     pub name: String,
-    // version: String,
+    version: String,
 }
 pub fn get_distro() -> OsInfo {
-    let binding = read_to_string("/etc/os-release").expect("/etc/os-release was found");
+    let binding = read_to_string("/etc/lsb-release").expect("/etc/os-release was found");
     let binding: Vec<&str> = binding.lines().collect();
     let mut distro_info: HashMap<String, String> = Default::default();
     for i in binding {
@@ -19,15 +20,15 @@ pub fn get_distro() -> OsInfo {
     }
     // Version field doesn't exist for Arch-based distributions
     let os_info = OsInfo {
-        name: distro_info["NAME"]
+        name: distro_info["DISTRIB_ID"]
             .replace("\"", "")
             .trim()
             .to_owned(),
-        // version: distro_info["VERSION"]
-        //     .replace("\\", "")
-        //     .replace("\"", "")
-        //     .trim()
-        //     .to_owned(),
+        version: distro_info["DISTRIB_RELEASE"]
+            .replace("\\", "")
+            .replace("\"", "")
+            .trim()
+            .to_owned(),
     };
     os_info
 }
@@ -48,6 +49,34 @@ pub fn get_cpu() -> String {
 //     // thermal data might be different between distributions and/or kernel versions?
 
 // }
+pub struct Uptime {
+    pub days: i32,
+    pub hours: i32,
+    pub minutes: i32,
+    pub seconds: i32,
+}
+// checks uptime
+pub fn get_uptime() -> Result<Uptime, Box<dyn Error>> {
+    let uptime_path: &Path = Path::new("/proc/uptime");
+    let uptime_bind = read_to_string(uptime_path)?;
+    let uptime_total = uptime_bind
+        .split_once(" ")
+        .expect("uptime was split correctly");
+    let uptime_system = uptime_total
+        .0
+        .to_owned()
+        .parse::<f32>()?
+        .round()
+        as i32;
+    let uptime = Uptime {
+        days: uptime_system / 60 / 60 / 24,
+        hours: uptime_system.to_owned() / 60 / 60 % 24,
+        minutes: uptime_system.to_owned() / 60 % 60,
+        seconds: uptime_system.to_owned() % 60
+    };
+    Ok(uptime)
+}
+
 pub fn get_temp() -> String {
     match get_thermal_zone() {
         Ok(str) => str,
@@ -56,45 +85,43 @@ pub fn get_temp() -> String {
 }
 // checks thermal_zone temps
 // has early returns on reading the path (doesn't exist on Arch?) and on string parse
-fn get_thermal_zone() -> Result<String, Box<dyn std::error::Error>> {
+fn get_thermal_zone() -> Result<String, Box<dyn Error>> {
     let thermal_path: &Path = Path::new("/sys/class/thermal/thermal_zone0/temp");
     let temp_value: f32 = read_to_string(thermal_path)?
         .trim()
         .to_owned()
         .parse()?;
     let temp_human = temp_value / 1000.0;
-    Ok(format!("{:.2}°C", temp_human))
+    Ok(format!("{:.1}°C", temp_human))
 }
 // checks hwmon temperatures
-// TODO: make proper iteration over possible names
 // TODO: add checks for various temp* files
 fn get_temp_monitor() -> Result<String, Box<dyn Error>> {
-    let possible_path = vec!["cpu_thermal",
-                             "coretemp",
-                             "fam15h_power",
-                             "k10temp"];
-    let mon_paths: Vec<_> = glob("/sys/class/hwmon/*")
-        .expect("paths found")
+    let mon_paths: Vec<_> = glob("/sys/class/hwmon/*")?
         .collect();
     for paths in mon_paths {
-        let name_path = paths
+        let name_path: PathBuf = paths
             .as_ref()
             .unwrap()
             .join("name");
-        let name_path = read_to_string(name_path)
-            .unwrap()
+        let name_file: String = read_to_string(name_path)?
             .trim()
             .to_owned();
-        if name_path == possible_path[3] {
-            let temp_path = paths
-                .unwrap()
-                .join("temp1_input");
-            let temp_string: f32 = read_to_string(temp_path)
-                .unwrap()
-                .trim()
-                .parse::<f32>()?
-                / 1000.0;
-            return Ok(format!("{:.2}°C", temp_string));
+        return match name_file.as_ref() {
+            "cpu_thermal" |
+            "coretemp" |
+            "fam15h_power" |
+            "k10temp" => {
+                let temp_path = paths
+                    .unwrap()
+                    .join("temp1_input");
+                let temp_float: f32 = read_to_string(temp_path)?
+                    .trim()
+                    .parse::<f32>()?
+                    / 1000.0;
+                Ok(format!("{:.1}°C", temp_float))
+            }
+            _ => continue,
         }
     }
     Err(Box::new(std::fmt::Error))
