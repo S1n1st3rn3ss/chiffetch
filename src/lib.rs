@@ -18,7 +18,6 @@ pub fn get_distro() -> OsInfo {
         let split = i.split_once("=").unwrap();
         distro_info.insert(split.0.trim().to_owned(), split.1.trim().to_owned());
     }
-    // Version field doesn't exist for Arch-based distributions
     let os_info = OsInfo {
         name: distro_info["DISTRIB_ID"]
             .replace("\"", "")
@@ -32,10 +31,9 @@ pub fn get_distro() -> OsInfo {
     };
     os_info
 }
-pub fn get_kernel() -> String {
-    let kernel = read_to_string("/proc/sys/kernel/osrelease")
-        .expect("/proc/sys/kernel/osrelease was found");
-    kernel
+pub fn get_kernel() -> Result<String, Box(dyn Error)> {
+    let kernel = read_to_string("/proc/sys/kernel/osrelease")?;
+    Ok(kernel)
 }
 pub fn get_cpu_frequency() -> String {
     read_to_string("/sys/devices/system/cpu/cpu0/cpufreq/bios_limit")
