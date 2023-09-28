@@ -60,17 +60,16 @@ pub fn get_uptime() -> Result<Uptime, Box<dyn Error>> {
     let uptime_total = uptime_bind
         .split_once(" ")
         .expect("uptime was split correctly");
-    let uptime_system = uptime_total
-        .0
-        .to_owned()
+    let uptime_system = uptime_total.0;
+    let uptime_float: i32 = uptime_system
         .parse::<f32>()?
         .round()
         as i32;
     let uptime = Uptime {
-        days: &uptime_system / 60 / 60 / 24,
-        hours: &uptime_system / 60 / 60 % 24,
-        minutes: &uptime_system / 60 % 60,
-        seconds: &uptime_system % 60
+        days: &uptime_float / 60 / 60 / 24,
+        hours: &uptime_float / 60 / 60 % 24,
+        minutes: &uptime_float / 60 % 60,
+        seconds: &uptime_float % 60
     };
     Ok(uptime)
 }
