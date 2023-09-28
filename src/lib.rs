@@ -2,11 +2,9 @@ use std::collections::HashMap;
 use std::env;
 use std::env::VarError;
 use std::error::Error;
-use std::fs::{read_dir, read_to_string};
-use std::io::ErrorKind;
+use std::fs::{read_to_string};
 use glob::*;
 use std::path::{Path, PathBuf};
-use std::time::SystemTime;
 
 pub struct OsInfo {
     pub name: String,
@@ -77,7 +75,7 @@ pub fn get_uptime() -> Result<Uptime, Box<dyn Error>> {
 pub fn get_temp() -> String {
     match get_thermal_zone() {
         Ok(str) => str,
-        Err(error) => get_temp_monitor().unwrap()
+        Err(_error) => get_temp_monitor().unwrap()
     }
 }
 // checks thermal_zone temps
